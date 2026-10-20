@@ -13,8 +13,8 @@
 <label>تعداد محصول نهایی<input name="quantity" type="number" min="1" value="{{ quote.quantity|default:1000 }}" required></label>
 <label>تعداد شیت چاپ<input name="sheet_quantity" type="number" min="1" value="{{ quote.sheet_quantity|default_if_none:'' }}" placeholder="در صورت مشخص بودن"></label>
 <label>تعداد محصول در هر شیت<input id="products-per-sheet" name="products_per_sheet" type="number" min="1" value="{{ quote.products_per_sheet|default:1 }}" required></label>
-<label>عرض (cm)<input name="width_cm" type="number" min="0" step=".01" value="{{ quote.width_cm|default:20 }}"></label>
-<label>ارتفاع محصول (cm)<input name="height_cm" type="number" min="0.01" step=".01" value="{{ quote.height_cm|default:15 }}"></label>
+<label>عرض (cm)<input id="width_cm" name="width_cm" type="number" min="0.01" step=".01" value="{{ quote.width_cm|default:20 }}"></label>
+<label>ارتفاع محصول (cm)<input id="height_cm" name="height_cm" type="number" min="0.01" step=".01" value="{{ quote.height_cm|default:15 }}"></label>
 <label>عرض شیت چاپ (cm)<input id="sheet-width" name="sheet_width_cm" type="number" min="0.01" step=".01" value="{{ quote.sheet_width_cm|default_if_none:'' }}" placeholder="مثلاً 70"></label>
 <label>ارتفاع شیت چاپ (cm)<input id="sheet-height" name="sheet_height_cm" type="number" min="0.01" step=".01" value="{{ quote.sheet_height_cm|default_if_none:'' }}" placeholder="مثلاً 100"></label>
 <label>حاشیه امن هر طرف (cm)<input id="sheet-margin" name="sheet_margin_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_cm|default:0 }}"></label>
