@@ -46,7 +46,7 @@
 <label>سربار (%)<input name="overhead_percent" type="number" min="0" step=".01" value="{{ quote.overhead_percent|default:10 }}"></label>
 <label>حاشیه سود هدف (%)<input name="margin_percent" type="number" min="0" max="99.99" step=".01" value="{{ quote.margin_percent|default:20 }}"></label>
 <label>مالیات / عوارض (%)<input name="tax_percent" type="number" min="0" step=".01" value="{{ quote.tax_percent|default:0 }}"></label>
-<label>وضعیت<select name="status">{% for value,label in quote.STATUS_CHOICES %}<option value="{{ value }}" {% if quote.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label>وضعیت<select name="status">{% for value,label in status_choices %}<option value="{{ value }}" {% if quote.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
 <label class="full">توضیحات<textarea name="notes" rows="3" placeholder="نوع روکش، لمینت، طلاکوب، بسته‌بندی، زمان تحویل و ...">{{ quote.notes|default:'' }}</textarea></label>
 <div class="full actions"><button class="button" type="submit">{% if is_edit %}ذخیره تغییرات{% else %}محاسبه و ذخیره برآورد{% endif %}</button><a class="button secondary" href="/quotes/">انصراف</a></div>
 </form>
