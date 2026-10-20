@@ -57,7 +57,10 @@ def _save_quote(request, quote=None):
         "depth_cm": _decimal(request.POST, "depth_cm") if request.POST.get("depth_cm") else None,
         "sheet_width_cm": _decimal(request.POST, "sheet_width_cm") if request.POST.get("sheet_width_cm") else None,
         "sheet_height_cm": _decimal(request.POST, "sheet_height_cm") if request.POST.get("sheet_height_cm") else None,
-        "sheet_margin_cm": _decimal(request.POST, "sheet_margin_cm"),
+        "sheet_margin_left_cm": _decimal(request.POST, "sheet_margin_left_cm"),
+        "sheet_margin_right_cm": _decimal(request.POST, "sheet_margin_right_cm"),
+        "sheet_margin_top_cm": _decimal(request.POST, "sheet_margin_top_cm"),
+        "sheet_margin_bottom_cm": _decimal(request.POST, "sheet_margin_bottom_cm"),
         "sheet_gap_cm": _decimal(request.POST, "sheet_gap_cm"),
         "allow_rotation": request.POST.get("allow_rotation") == "on",
         "material": material,
@@ -79,8 +82,8 @@ def _save_quote(request, quote=None):
     }
     if data["quantity"] < 1 or data["products_per_sheet"] < 1:
         raise ValueError("تعداد باید بیشتر از صفر باشد.")
-    if data["sheet_margin_cm"] < 0 or data["sheet_gap_cm"] < 0:
-        raise ValueError("حاشیه و فاصله شیت نمی‌تواند منفی باشد.")
+    if any(data[key] < 0 for key in ("sheet_margin_left_cm", "sheet_margin_right_cm", "sheet_margin_top_cm", "sheet_margin_bottom_cm", "sheet_gap_cm")):
+        raise ValueError("حاشیه‌های شیت و فاصله بین محصولات نمی‌توانند منفی باشند.")
     if (data["sheet_width_cm"] is not None and data["sheet_width_cm"] <= 0) or (data["sheet_height_cm"] is not None and data["sheet_height_cm"] <= 0):
         raise ValueError("ابعاد شیت باید بیشتر از صفر باشند.")
     if any(data[k] < 0 for k in ("width_cm", "height_cm", "waste_percent", "print_cost_per_unit",
