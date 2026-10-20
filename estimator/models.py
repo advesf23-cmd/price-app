@@ -128,7 +128,7 @@ class Quote(models.Model):
             material_total = grams / Decimal("1000") * material_rate
         else:
             material_total = q * (Decimal("1") + self.waste_percent / Decimal("100")) * material_rate
-        material_lines = sum((line.quantity * line.unit_price for line in self.material_lines.all()), Decimal("0"))
+        material_lines = sum((line.quantity * line.unit_price for line in self.material_lines.all()), Decimal("0"))\n        material_lines *= Decimal("1") + self.waste_percent / Decimal("100")
         cost_lines = sum((line.quantity * line.unit_price for line in self.cost_lines.all()), Decimal("0"))
         material_total += material_lines
         printing = print_quantity * self.print_cost_per_unit + self.plate_cost + self.setup_cost
