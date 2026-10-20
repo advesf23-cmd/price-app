@@ -95,7 +95,10 @@ class Quote(models.Model):
     depth_cm = models.DecimalField("عمق / عطف (سانتی‌متر)", max_digits=8, decimal_places=2, null=True, blank=True)
     sheet_width_cm = models.DecimalField("عرض شیت چاپ (سانتی‌متر)", max_digits=8, decimal_places=2, null=True, blank=True)
     sheet_height_cm = models.DecimalField("ارتفاع شیت چاپ (سانتی‌متر)", max_digits=8, decimal_places=2, null=True, blank=True)
-    sheet_margin_cm = models.DecimalField("حاشیه امن شیت از هر طرف (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
+    sheet_margin_left_cm = models.DecimalField("حاشیه امن چپ شیت (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
+    sheet_margin_right_cm = models.DecimalField("حاشیه امن راست شیت (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
+    sheet_margin_top_cm = models.DecimalField("حاشیه امن بالای شیت (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
+    sheet_margin_bottom_cm = models.DecimalField("حاشیه امن پایین شیت (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
     sheet_gap_cm = models.DecimalField("فاصله بین محصولات روی شیت (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
     allow_rotation = models.BooleanField("چرخش ۹۰ درجه مجاز است", default=True)
     material = models.ForeignKey(PriceItem, on_delete=models.SET_NULL, null=True, blank=True,
