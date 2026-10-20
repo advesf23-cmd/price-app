@@ -135,7 +135,7 @@ def _quote_form(request, quote=None):
         "customers": customers, "materials": materials, "product_types": product_types,
         "quote": quote, "is_edit": quote is not None,
         "material_lines": quote.material_lines.all() if quote else [],
-        "cost_lines": quote.cost_lines.all() if quote else [],
+        "cost_lines": quote.cost_lines.all() if quote else [],\n        "status_choices": Quote.STATUS_CHOICES,
     })
 
 
