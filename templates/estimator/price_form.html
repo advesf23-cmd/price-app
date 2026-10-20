@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-title"><p class="eyebrow">مرکز نرخ‌ها</p><h1>ثبت قیمت پایه</h1><p>واحد قیمت را دقیق ثبت کنید. برای مثال اگر واحد «کیلوگرم» است، مبلغ باید قیمت هر کیلوگرم باشد.</p></div>
+<form method="post" class="panel form-grid">{% csrf_token %}
+<label>عنوان قلم هزینه<input name="name" required placeholder="مثلاً مقوای ایندربرد ۳۰۰ گرم"></label>
+<label>دسته<select name="category">{% for val,label in categories %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select></label>
+<label>قیمت واحد (تومان)<input name="unit_price" type="number" min="0" step=".01" required></label><label>واحد<input name="unit" value="کیلوگرم" required placeholder="کیلوگرم، ورق، عدد، فرم"></label>
+<label>تأمین‌کننده / منبع<input name="supplier"></label><label>تاریخ شروع اعتبار<input name="effective_from" type="date"></label>
+<label class="full">لینک منبع قیمت (اختیاری)<input name="source_url" type="url" placeholder="https://..."></label><label class="full">یادداشت<textarea name="notes" rows="3" placeholder="گرماژ، ابعاد ورق، برند، شرایط خرید و ..."></textarea></label>
+<label class="check"><input type="checkbox" name="active" checked> قیمت فعال است</label>
+<div class="full actions"><button class="button">ذخیره قیمت</button><a class="button secondary" href="/prices/">بازگشت</a></div>
+</form>{% endblock %}

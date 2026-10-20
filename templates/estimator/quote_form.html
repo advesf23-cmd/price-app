@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block title %}برآورد جدید | چاپ‌یار{% endblock %}{% block content %}
+<div class="page-title"><p class="eyebrow">محاسبه‌گر تولید</p><h1>برآورد قیمت جدید</h1><p>مبالغ را به تومان وارد کنید. این نسخه، محاسبه پایه را انجام می‌دهد و برای نرخ‌های واقعی باید کاتالوگ قیمت خود را تکمیل کنید.</p></div>
+<form method="post" class="panel form-grid">{% csrf_token %}
+<h2 class="full">مشخصات سفارش</h2>
+<label>مشتری<select name="customer" required>{% for c in customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% empty %}<option value="">ابتدا مشتری را در پنل مدیریت ثبت کنید</option>{% endfor %}</select></label>
+<label>عنوان محصول<input name="title" required placeholder="مثلاً جعبه کرم ۵۰ میلی‌لیتری"></label>
+<label>نوع محصول<select name="product_type"><option>جعبه بسته‌بندی</option><option>لیبل</option><option>کاتالوگ</option><option>بروشور</option><option>ساک دستی</option><option>پاکت</option><option>محصول دیگر</option></select></label>
+<label>تیراژ<input name="quantity" type="number" min="1" value="1000" required></label>
+<label>عرض (cm)<input name="width_cm" type="number" step=".01" value="20"></label><label>ارتفاع (cm)<input name="height_cm" type="number" step=".01" value="15"></label><label>عمق/عطف (cm)<input name="depth_cm" type="number" step=".01" value="5"></label>
+<label>ماده اولیه<select name="material"><option value="">بدون اتصال به قیمت پایه</option>{% for m in materials %}<option value="{{ m.id }}">{{ m.name }} · {{ m.unit_price }} تومان / {{ m.unit }}</option>{% endfor %}</select></label>
+<label>مصرف ماده برای هر محصول (گرم)<input name="material_grams_per_unit" type="number" step=".001" value="40"></label><label>پرت تولید (%)<input name="waste_percent" type="number" step=".01" value="8"></label>
+<label>مشخصات رنگ<input name="colors" value="چهار رنگ CMYK" placeholder="مثلاً 4 رنگ دو رو"></label>
+<h2 class="full">هزینه‌های تولید (تومان)</h2>
+<label>چاپ هر واحد<input name="print_cost_per_unit" type="number" step=".01" value="0"></label><label>زینک / آماده‌سازی چاپ<input name="plate_cost" type="number" step=".01" value="0"></label><label>خدمات پس از چاپ هر واحد<input name="postpress_cost_per_unit" type="number" step=".01" value="0"></label><label>قالب / تیغ کل<input name="die_cost" type="number" step=".01" value="0"></label><label>تنظیمات و راه‌اندازی کل<input name="setup_cost" type="number" step=".01" value="0"></label><label>حمل‌ونقل کل<input name="transport_cost" type="number" step=".01" value="0"></label><label>دستمزد مستقیم کل<input name="labor_cost" type="number" step=".01" value="0"></label>
+<h2 class="full">سربار، سود و توضیحات</h2>
+<label>سربار (%)<input name="overhead_percent" type="number" step=".01" value="10"></label><label>حاشیه سود هدف (%)<input name="margin_percent" type="number" step=".01" value="20"></label><label>مالیات / عوارض (%)<input name="tax_percent" type="number" step=".01" value="0"></label>
+<label class="full">توضیحات<textarea name="notes" rows="3" placeholder="نوع روکش، لمینت، طلاکوب، بسته‌بندی، زمان تحویل و ..."></textarea></label>
+<div class="full actions"><button class="button" type="submit">محاسبه و ذخیره برآورد</button><a class="button secondary" href="/quotes/">انصراف</a></div>
+</form>{% endblock %}

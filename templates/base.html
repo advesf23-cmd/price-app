@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}چاپ‌یار | برآورد قیمت{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/">چاپ‌یار <span>سامانه برآورد قیمت</span></a>
+<nav><a href="/">داشبورد</a><a href="/quotes/">برآوردها</a><a href="/quotes/new/">برآورد جدید</a><a href="/prices/">قیمت‌های پایه</a><a href="/admin/">مدیریت</a></nav></header>
+<main class="container">
+{% if messages %}{% for message in messages %}<div class="notice">{{ message }}</div>{% endfor %}{% endif %}
+{% block content %}{% endblock %}
+<footer>چاپ‌یار · نسخه اولیه قابل توسعه · مبالغ در این نسخه به تومان ثبت می‌شوند.</footer>
+</main>
+</body></html>
