@@ -121,7 +121,7 @@ class Quote(models.Model):
 
     def calculate(self):
         q = Decimal(self.quantity or 0)
-        print_quantity = Decimal(self.sheet_quantity if self.sheet_quantity is not None else (self.quantity or 0))
+        print_quantity = Decimal(self.sheet_quantity if self.sheet_quantity is not None else (((self.quantity or 0) + max(self.products_per_sheet, 1) - 1) // max(self.products_per_sheet, 1)))
         material_rate = self.material.unit_price if self.material_id else Decimal("0")
         grams = self.material_grams_per_unit * q * (Decimal("1") + self.waste_percent / Decimal("100"))
         if self.material and self.material.unit.lower() in ("کیلوگرم", "kg", "کیلو"):
