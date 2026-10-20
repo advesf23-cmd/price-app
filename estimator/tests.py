@@ -90,6 +90,9 @@ class QuoteCalculationTests(TestCase):
         self.assertEqual(quote.title, "بعد")
         self.assertEqual(quote.quantity, 200)
         self.assertEqual(quote.sheet_quantity, 20)
+        self.assertEqual(quote.sheet_width_cm, Decimal("70"))
+        self.assertEqual(quote.sheet_height_cm, Decimal("100"))
+        self.assertTrue(quote.allow_rotation)
         self.assertEqual(quote.cost_lines.count(), 1)
         self.assertEqual(quote.calculate()["other_costs"], Decimal("20.00"))
 
