@@ -93,6 +93,11 @@ class Quote(models.Model):
     width_cm = models.DecimalField("عرض (سانتی‌متر)", max_digits=8, decimal_places=2, default=Decimal("20"))
     height_cm = models.DecimalField("ارتفاع (سانتی‌متر)", max_digits=8, decimal_places=2, default=Decimal("15"))
     depth_cm = models.DecimalField("عمق / عطف (سانتی‌متر)", max_digits=8, decimal_places=2, null=True, blank=True)
+    sheet_width_cm = models.DecimalField("عرض شیت چاپ (سانتی‌متر)", max_digits=8, decimal_places=2, null=True, blank=True)
+    sheet_height_cm = models.DecimalField("ارتفاع شیت چاپ (سانتی‌متر)", max_digits=8, decimal_places=2, null=True, blank=True)
+    sheet_margin_cm = models.DecimalField("حاشیه امن شیت از هر طرف (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
+    sheet_gap_cm = models.DecimalField("فاصله بین محصولات روی شیت (سانتی‌متر)", max_digits=6, decimal_places=2, default=Decimal("0"))
+    allow_rotation = models.BooleanField("چرخش ۹۰ درجه مجاز است", default=True)
     material = models.ForeignKey(PriceItem, on_delete=models.SET_NULL, null=True, blank=True,
                                  limit_choices_to={"category": "material"}, related_name="material_quotes",
                                  verbose_name="ماده اولیه")

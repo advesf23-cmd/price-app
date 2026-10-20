@@ -57,6 +57,11 @@ class QuoteCalculationTests(TestCase):
             "width_cm": "10",
             "height_cm": "15",
             "depth_cm": "",
+            "sheet_width_cm": "70",
+            "sheet_height_cm": "100",
+            "sheet_margin_cm": "0",
+            "sheet_gap_cm": "0",
+            "allow_rotation": "on",
             "material": "",
             "material_grams_per_unit": "0",
             "waste_percent": "0",
@@ -85,6 +90,9 @@ class QuoteCalculationTests(TestCase):
         self.assertEqual(quote.title, "بعد")
         self.assertEqual(quote.quantity, 200)
         self.assertEqual(quote.sheet_quantity, 20)
+        self.assertEqual(quote.sheet_width_cm, Decimal("70"))
+        self.assertEqual(quote.sheet_height_cm, Decimal("100"))
+        self.assertTrue(quote.allow_rotation)
         self.assertEqual(quote.cost_lines.count(), 1)
         self.assertEqual(quote.calculate()["other_costs"], Decimal("20.00"))
 

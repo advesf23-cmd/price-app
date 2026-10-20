@@ -12,9 +12,15 @@
 </select><small>انواع محصول از پنل مدیریت قابل افزودن و غیرفعال‌کردن هستند.</small></label>
 <label>تعداد محصول نهایی<input name="quantity" type="number" min="1" value="{{ quote.quantity|default:1000 }}" required></label>
 <label>تعداد شیت چاپ<input name="sheet_quantity" type="number" min="1" value="{{ quote.sheet_quantity|default_if_none:'' }}" placeholder="در صورت مشخص بودن"></label>
-<label>تعداد محصول در هر شیت<input name="products_per_sheet" type="number" min="1" value="{{ quote.products_per_sheet|default:1 }}" required></label>
-<label>عرض (cm)<input name="width_cm" type="number" min="0" step=".01" value="{{ quote.width_cm|default:20 }}"></label>
-<label>ارتفاع (cm)<input name="height_cm" type="number" min="0" step=".01" value="{{ quote.height_cm|default:15 }}"></label>
+<label>تعداد محصول در هر شیت<input id="products-per-sheet" name="products_per_sheet" type="number" min="1" value="{{ quote.products_per_sheet|default:1 }}" required></label>
+<label>عرض (cm)<input id="width_cm" name="width_cm" type="number" min="0.01" step=".01" value="{{ quote.width_cm|default:20 }}"></label>
+<label>ارتفاع محصول (cm)<input id="height_cm" name="height_cm" type="number" min="0.01" step=".01" value="{{ quote.height_cm|default:15 }}"></label>
+<label>عرض شیت چاپ (cm)<input id="sheet-width" name="sheet_width_cm" type="number" min="0.01" step=".01" value="{{ quote.sheet_width_cm|default_if_none:'' }}" placeholder="مثلاً 70"></label>
+<label>ارتفاع شیت چاپ (cm)<input id="sheet-height" name="sheet_height_cm" type="number" min="0.01" step=".01" value="{{ quote.sheet_height_cm|default_if_none:'' }}" placeholder="مثلاً 100"></label>
+<label>حاشیه امن هر طرف (cm)<input id="sheet-margin" name="sheet_margin_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_cm|default:0 }}"></label>
+<label>فاصله بین محصولات (cm)<input id="sheet-gap" name="sheet_gap_cm" type="number" min="0" step=".01" value="{{ quote.sheet_gap_cm|default:0 }}"></label>
+<label class="full"><span><input id="allow-rotation" name="allow_rotation" type="checkbox" {% if quote.allow_rotation or not quote %}checked{% endif %}> اجازه چرخش ۹۰ درجه محصول روی شیت</span><small>اگر جهت الیاف، طرح، قالب یا خط برش اجازه چرخش نمی‌دهد، این گزینه را خاموش کنید.</small></label>
+<div class="full"><button class="button secondary" type="button" id="calculate-layout">محاسبه تعداد در هر شیت</button><p id="layout-result" class="muted" aria-live="polite">ابعاد محصول و شیت را وارد کنید تا چیدمان تخمین زده شود.</p></div>
 <label>عمق/عطف (cm) <small>برای محصولاتی که عطف ندارند خالی بگذارید.</small><input name="depth_cm" type="number" min="0" step=".01" value="{{ quote.depth_cm|default_if_none:'' }}"></label>
 <label>ماده اولیه اصلی<select name="material"><option value="">بدون اتصال به قیمت پایه</option>{% for m in materials %}<option value="{{ m.id }}" {% if quote.material_id == m.id %}selected{% endif %}>{{ m.name }} · {{ m.unit_price }} تومان / {{ m.unit }}</option>{% endfor %}</select></label>
 <label>مصرف ماده اصلی برای هر محصول (گرم)<input name="material_grams_per_unit" type="number" min="0" step=".001" value="{{ quote.material_grams_per_unit|default:40 }}"></label>
@@ -52,6 +58,60 @@
 </form>
 <script>
 (function () {
+  const layoutButton = document.getElementById("calculate-layout");
+  if (layoutButton) layoutButton.addEventListener("click", function () {
+    const number = function (id) { return parseFloat(document.getElementById(id).value); };
+    const sw = number("sheet-width"), sh = number("sheet-height");
+    const pw = number("width_cm"), ph = number("height_cm");
+    const margin = number("sheet-margin") || 0, gap = number("sheet-gap") || 0;
+    const allowRotation = document.getElementById("allow-rotation").checked;
+    const result = document.getElementById("layout-result");
+    if (![sw, sh, pw, ph].every(Number.isFinite) || Math.min(sw, sh, pw, ph) <= 0) {
+      result.textContent = "لطفاً ابعاد مثبت محصول و شیت را وارد کنید.";
+      return;
+    }
+    const usableW = sw - 2 * margin, usableH = sh - 2 * margin;
+    if (usableW <= 0 || usableH <= 0) {
+      result.textContent = "حاشیه امن از ابعاد شیت بزرگ‌تر است.";
+      return;
+    }
+    const rowsW = Math.floor((usableW + gap + 1e-9) / (pw + gap));
+    const rowsH = Math.floor((usableH + gap + 1e-9) / (ph + gap));
+    let best = rowsW * rowsH, description = "چیدمان بدون چرخش";
+    if (allowRotation) {
+      const rotatedCols = Math.floor((usableW + gap + 1e-9) / (ph + gap));
+      const rotatedRows = Math.floor((usableH + gap + 1e-9) / (pw + gap));
+      if (rotatedCols * rotatedRows > best) {
+        best = rotatedCols * rotatedRows;
+        description = "چیدمان با چرخش ۹۰ درجه";
+      }
+      // Compare mixed rows: each row uses one orientation, with a shared row height.
+      const directPerRow = rowsW;
+      const rotatedPerRow = rotatedCols;
+      for (let directRows = 0; directRows <= Math.floor((usableH + gap) / (ph + gap)); directRows++) {
+        for (let rotatedRowCount = 0; rotatedRowCount <= Math.floor((usableH + gap) / (pw + gap)); rotatedRowCount++) {
+          const usedH = directRows * ph + rotatedRowCount * pw + Math.max(0, directRows + rotatedRowCount - 1) * gap;
+          if (usedH <= usableH + 1e-9) {
+            const count = directRows * directPerRow + rotatedRowCount * rotatedPerRow;
+            if (count > best) { best = count; description = "چیدمان ترکیبی با و بدون چرخش"; }
+          }
+        }
+      }
+    }
+    if (best < 1) {
+      result.textContent = "با این ابعاد، محصول در محدوده قابل استفاده شیت جا نمی‌شود.";
+      return;
+    }
+    document.getElementById("products-per-sheet").value = best;
+    const quantityInput = document.querySelector('input[name="quantity"]');
+    const sheetsInput = document.querySelector('input[name="sheet_quantity"]');
+    if (quantityInput && sheetsInput && parseInt(quantityInput.value, 10) > 0) {
+      sheetsInput.value = Math.ceil(parseInt(quantityInput.value, 10) / best);
+    }
+    result.textContent = "حداکثر تخمینی: " + best + " محصول در هر شیت، " + description +
+      (sheetsInput && sheetsInput.value ? "؛ شیت موردنیاز برای تیراژ فعلی: " + sheetsInput.value : "") +
+      ". نتیجه برای چیدمان ردیفی است و جایگزین بررسی نهایی قالب و خط برش نیست.";
+  });
   const materialButton = document.getElementById("add-material-line");
   if (materialButton) materialButton.addEventListener("click", function () {
     const selects = Array.from(document.querySelectorAll('select[name="material_line_item"]'));
