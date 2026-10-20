@@ -24,6 +24,7 @@
 <p class="full muted">برای هر ردیف ماده‌ای را از کاتالوگ انتخاب کنید و مقدار مصرف را بر حسب واحد همان قلم وارد کنید؛ نرخ فعال یا پله قیمت آن هنگام ذخیره ثبت می‌شود.</p>
 {% for line in material_lines %}<label>ماده<select name="material_line_item"><option value="">انتخاب ماده</option>{% for m in materials %}<option value="{{ m.id }}" {% if line.item_id == m.id %}selected{% endif %}>{{ m.name }} ({{ m.unit }})</option>{% endfor %}</select></label><label>مقدار مصرف<input name="material_line_quantity" type="number" min="0" step=".0001" value="{{ line.quantity }}"></label>{% endfor %}
 {% for i in "123" %}<label>ماده اضافی<select name="material_line_item"><option value="">بدون ماده</option>{% for m in materials %}<option value="{{ m.id }}">{{ m.name }} ({{ m.unit }})</option>{% endfor %}</select></label><label>مقدار مصرف<input name="material_line_quantity" type="number" min="0" step=".0001" value=""></label>{% endfor %}
+<div class="full"><button class="button secondary" type="button" id="add-material-line">+ افزودن ردیف ماده</button></div>
 <h2 class="full">هزینه‌های تولید (تومان)</h2>
 <label>چاپ هر شیت (اگر تعداد شیت ثبت شود)<input name="print_cost_per_unit" type="number" min="0" step=".01" value="{{ quote.print_cost_per_unit|default:0 }}"></label>
 <label>زینک / آماده‌سازی چاپ<input name="plate_cost" type="number" min="0" step=".01" value="{{ quote.plate_cost|default:0 }}"></label>
@@ -40,6 +41,7 @@
 {% for i in "123" %}
 <label>شرح هزینه<input name="cost_line_name" placeholder="مثلاً لمینت"></label><label>مقدار<input name="cost_line_quantity" type="number" min="0" step=".0001" value="1"></label><label>واحد<input name="cost_line_unit" value="مورد"></label><label>نرخ واحد (تومان)<input name="cost_line_price" type="number" min="0" step=".01" value="0"></label>
 {% endfor %}
+<div class="full"><button class="button secondary" type="button" id="add-cost-line">+ افزودن ردیف هزینه</button></div>
 <h2 class="full">سربار، سود و توضیحات</h2>
 <label>سربار (%)<input name="overhead_percent" type="number" min="0" step=".01" value="{{ quote.overhead_percent|default:10 }}"></label>
 <label>حاشیه سود هدف (%)<input name="margin_percent" type="number" min="0" max="99.99" step=".01" value="{{ quote.margin_percent|default:20 }}"></label>
@@ -48,4 +50,32 @@
 <label class="full">توضیحات<textarea name="notes" rows="3" placeholder="نوع روکش، لمینت، طلاکوب، بسته‌بندی، زمان تحویل و ...">{{ quote.notes|default:'' }}</textarea></label>
 <div class="full actions"><button class="button" type="submit">{% if is_edit %}ذخیره تغییرات{% else %}محاسبه و ذخیره برآورد{% endif %}</button><a class="button secondary" href="/quotes/">انصراف</a></div>
 </form>
+<script>
+(function () {
+  const materialButton = document.getElementById("add-material-line");
+  if (materialButton) materialButton.addEventListener("click", function () {
+    const selects = Array.from(document.querySelectorAll('select[name="material_line_item"]'));
+    const quantities = Array.from(document.querySelectorAll('input[name="material_line_quantity"]'));
+    if (!selects.length || !quantities.length) return;
+    const selectLabel = selects[selects.length - 1].closest("label").cloneNode(true);
+    const quantityLabel = quantities[quantities.length - 1].closest("label").cloneNode(true);
+    selectLabel.querySelector("select").selectedIndex = 0;
+    quantityLabel.querySelector("input").value = "";
+    materialButton.parentElement.insertAdjacentElement("beforebegin", selectLabel);
+    materialButton.parentElement.insertAdjacentElement("beforebegin", quantityLabel);
+  });
+  const costButton = document.getElementById("add-cost-line");
+  if (costButton) costButton.addEventListener("click", function () {
+    const fields = ["cost_line_name", "cost_line_quantity", "cost_line_unit", "cost_line_price"];
+    fields.forEach(function (field) {
+      const nodes = Array.from(document.querySelectorAll('[name="' + field + '"]'));
+      if (!nodes.length) return;
+      const label = nodes[nodes.length - 1].closest("label").cloneNode(true);
+      const input = label.querySelector("input");
+      if (input) input.value = field === "cost_line_quantity" ? "1" : (field === "cost_line_unit" ? "مورد" : (field === "cost_line_price" ? "0" : ""));
+      costButton.parentElement.insertAdjacentElement("beforebegin", label);
+    });
+  });
+})();
+</script>
 {% endblock %}
