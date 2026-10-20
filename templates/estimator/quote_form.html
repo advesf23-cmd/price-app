@@ -24,7 +24,10 @@
 <label>ارتفاع محصول (cm)<input id="height_cm" name="height_cm" type="number" min="0.01" step=".01" value="{{ quote.height_cm|default:15 }}"></label>
 <label>عرض شیت چاپ (cm)<input id="sheet-width" name="sheet_width_cm" type="number" min="0.01" step=".01" value="{{ quote.sheet_width_cm|default_if_none:'' }}" placeholder="مثلاً 70"></label>
 <label>ارتفاع شیت چاپ (cm)<input id="sheet-height" name="sheet_height_cm" type="number" min="0.01" step=".01" value="{{ quote.sheet_height_cm|default_if_none:'' }}" placeholder="مثلاً 100"></label>
-<label>حاشیه امن هر طرف (cm)<input id="sheet-margin" name="sheet_margin_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_cm|default:0 }}"></label>
+<label>حاشیه امن چپ (cm)<input id="sheet-margin-left" name="sheet_margin_left_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_left_cm|default:0 }}"></label>
+<label>حاشیه امن راست (cm)<input id="sheet-margin-right" name="sheet_margin_right_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_right_cm|default:0 }}"></label>
+<label>حاشیه امن بالا (cm)<input id="sheet-margin-top" name="sheet_margin_top_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_top_cm|default:0 }}"></label>
+<label>حاشیه امن پایین (cm)<input id="sheet-margin-bottom" name="sheet_margin_bottom_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_bottom_cm|default:0 }}"></label>
 <label>فاصله بین محصولات (cm)<input id="sheet-gap" name="sheet_gap_cm" type="number" min="0" step=".01" value="{{ quote.sheet_gap_cm|default:0 }}"></label>
 <label class="full"><span><input id="allow-rotation" name="allow_rotation" type="checkbox" {% if quote.allow_rotation or not quote %}checked{% endif %}> اجازه چرخش ۹۰ درجه محصول روی شیت</span><small>اگر جهت الیاف، طرح، قالب یا خط برش اجازه چرخش نمی‌دهد، این گزینه را خاموش کنید.</small></label>
 <div class="full"><button class="button secondary" type="button" id="calculate-layout">محاسبه بهترین چیدمان و نمایش نقشه</button><p id="layout-result" class="muted" aria-live="polite">ابعاد محصول و شیت را وارد کنید تا چیدمان تخمین زده شود.</p><section id="layout-preview" class="layout-preview" hidden aria-live="polite"><h3>نقشه چیدمان روی شیت</h3><div id="layout-svg-wrap" class="layout-svg-wrap"></div><p id="layout-legend" class="muted"></p></section></div>
@@ -70,18 +73,20 @@
     const number = function (id) { return parseFloat(document.getElementById(id).value); };
     const sw = number("sheet-width"), sh = number("sheet-height");
     const pw = number("width_cm"), ph = number("height_cm");
-    const margin = number("sheet-margin") || 0, gap = number("sheet-gap") || 0;
+    const marginLeft = number("sheet-margin-left") || 0, marginRight = number("sheet-margin-right") || 0;
+    const marginTop = number("sheet-margin-top") || 0, marginBottom = number("sheet-margin-bottom") || 0;
+    const gap = number("sheet-gap") || 0;
     const allowRotation = document.getElementById("allow-rotation").checked;
     const result = document.getElementById("layout-result");
     const preview = document.getElementById("layout-preview");
     const svgWrap = document.getElementById("layout-svg-wrap");
     const legend = document.getElementById("layout-legend");
     preview.hidden = true;
-    if (![sw, sh, pw, ph, margin, gap].every(Number.isFinite) || Math.min(sw, sh, pw, ph) <= 0 || margin < 0 || gap < 0) {
+    if (![sw, sh, pw, ph, marginLeft, marginRight, marginTop, marginBottom, gap].every(Number.isFinite) || Math.min(sw, sh, pw, ph) <= 0 || Math.min(marginLeft, marginRight, marginTop, marginBottom, gap) < 0) {
       result.textContent = "لطفاً ابعاد مثبت محصول و شیت و حاشیه/فاصله معتبر وارد کنید.";
       return;
     }
-    const usableW = sw - 2 * margin, usableH = sh - 2 * margin;
+    const usableW = sw - marginLeft - marginRight, usableH = sh - marginTop - marginBottom;
     if (usableW <= 0 || usableH <= 0) {
       result.textContent = "حاشیه امن از ابعاد شیت بزرگ‌تر است.";
       return;
@@ -109,14 +114,14 @@
       return;
     }
     const placements = [];
-    let y = margin;
+    let y = marginTop;
     const rowSpecs = [];
     for (let i = 0; i < best.directRows; i++) rowSpecs.push({w: pw, h: ph, cols: directCols, rotated: false});
     for (let i = 0; i < best.rotatedRows; i++) rowSpecs.push({w: ph, h: pw, cols: rotatedCols, rotated: true});
     rowSpecs.forEach(function (row, rowIndex) {
       for (let col = 0; col < row.cols; col++) {
-        const x = margin + col * (row.w + gap);
-        if (x + row.w <= sw - margin + 1e-9 && y + row.h <= sh - margin + 1e-9) {
+        const x = marginLeft + col * (row.w + gap);
+        if (x + row.w <= sw - marginRight + 1e-9 && y + row.h <= sh - marginBottom + 1e-9) {
           placements.push({x, y, w: row.w, h: row.h, rotated: row.rotated, index: placements.length + 1});
         }
       }
@@ -140,13 +145,13 @@
       return el;
     };
     svg.appendChild(make("rect", {x: 0, y: 0, width: sw, height: sh, fill: "#fff", stroke: "#334155", "stroke-width": Math.max(sw, sh) * 0.003}));
-    svg.appendChild(make("rect", {x: margin, y: margin, width: usableW, height: usableH, fill: "#f8fafc", stroke: "#94a3b8", "stroke-dasharray": (Math.max(sw, sh) * 0.012) + " " + (Math.max(sw, sh) * 0.008), "stroke-width": Math.max(sw, sh) * 0.0015}));
+    svg.appendChild(make("rect", {x: marginLeft, y: marginTop, width: usableW, height: usableH, fill: "#f8fafc", stroke: "#94a3b8", "stroke-dasharray": (Math.max(sw, sh) * 0.012) + " " + (Math.max(sw, sh) * 0.008), "stroke-width": Math.max(sw, sh) * 0.0015}));
     placements.forEach(function (p) {
       svg.appendChild(make("rect", {x: p.x, y: p.y, width: p.w, height: p.h, rx: Math.max(sw, sh) * 0.002, fill: p.rotated ? "#dcfce7" : "#dbeafe", stroke: p.rotated ? "#15803d" : "#2563eb", "stroke-width": Math.max(sw, sh) * 0.0018}));
     });
     svgWrap.replaceChildren(svg);
     const rotatedCount = placements.filter(function (p) { return p.rotated; }).length;
-    legend.textContent = "آبی: جهت اصلی (" + (placements.length - rotatedCount) + ") · سبز: چرخش ۹۰ درجه (" + rotatedCount + ") · خط‌چین: محدوده قابل استفاده با حاشیه امن. فاصله بین محصولات در مقیاس واقعی رسم شده است.";
+    legend.textContent = "آبی: جهت اصلی (" + (placements.length - rotatedCount) + ") · سبز: چرخش ۹۰ درجه (" + rotatedCount + ") · خط‌چین: محدوده قابل استفاده پس از اعمال حاشیه‌های جداگانه چپ، راست، بالا و پایین. فاصله بین محصولات در مقیاس واقعی رسم شده است.";
     preview.hidden = false;
     const layoutName = best.rotatedRows && best.directRows ? "چیدمان ترکیبی" : (best.rotatedRows ? "چیدمان با چرخش ۹۰ درجه" : "چیدمان بدون چرخش");
     result.textContent = "حداکثر تخمینی: " + best.count + " محصول در هر شیت، " + layoutName +
