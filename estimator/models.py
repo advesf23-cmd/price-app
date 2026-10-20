@@ -173,6 +173,14 @@ class QuoteMaterial(models.Model):
         verbose_name = "ماده مصرفی برآورد"
         verbose_name_plural = "مواد مصرفی برآورد"
 
+    @property
+    def line_total(self):
+        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
+    @property
+    def line_total(self):
+        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
     def __str__(self):
         return f"{self.name}: {self.quantity} {self.unit}"
 
