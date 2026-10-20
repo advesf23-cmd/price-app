@@ -177,10 +177,6 @@ class QuoteMaterial(models.Model):
     def line_total(self):
         return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
 
-    @property
-    def line_total(self):
-        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
-
     def __str__(self):
         return f"{self.name}: {self.quantity} {self.unit}"
 
@@ -196,6 +192,10 @@ class QuoteCostLine(models.Model):
     class Meta:
         verbose_name = "ردیف هزینه تولید"
         verbose_name_plural = "ردیف‌های هزینه تولید"
+
+    @property
+    def line_total(self):
+        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
 
     def __str__(self):
         return f"{self.name}: {self.quantity} {self.unit}"
