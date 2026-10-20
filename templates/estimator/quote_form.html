@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{% if is_edit %}ویرایش برآورد{% else %}برآورد جدید{% endif %} | چاپ‌یار{% endblock %}
 {% block content %}
+<style>
+.layout-preview { margin-top: 1rem; padding: 1rem; border: 1px solid var(--border, #dbe2ea); border-radius: 12px; background: var(--panel, #fff); }
+.layout-preview h3 { margin-top: 0; }
+.layout-svg-wrap { width: 100%; max-width: 850px; margin: .75rem auto; overflow: hidden; background: #f8fafc; border-radius: 8px; }
+.layout-svg-wrap svg { display: block; width: 100%; height: auto; max-height: 75vh; }
+</style>
+
 <div class="page-title"><p class="eyebrow">محاسبه‌گر تولید</p><h1>{% if is_edit %}ویرایش برآورد{% else %}برآورد قیمت جدید{% endif %}</h1><p>مبالغ را به تومان وارد کنید. نرخ‌های ردیف‌ها هنگام ذخیره در برآورد ثبت می‌شوند تا تغییر کاتالوگ، گزارش قبلی را تغییر ندهد.</p></div>
 <form method="post" class="panel form-grid">{% csrf_token %}
 <h2 class="full">مشخصات سفارش</h2>
@@ -20,7 +27,7 @@
 <label>حاشیه امن هر طرف (cm)<input id="sheet-margin" name="sheet_margin_cm" type="number" min="0" step=".01" value="{{ quote.sheet_margin_cm|default:0 }}"></label>
 <label>فاصله بین محصولات (cm)<input id="sheet-gap" name="sheet_gap_cm" type="number" min="0" step=".01" value="{{ quote.sheet_gap_cm|default:0 }}"></label>
 <label class="full"><span><input id="allow-rotation" name="allow_rotation" type="checkbox" {% if quote.allow_rotation or not quote %}checked{% endif %}> اجازه چرخش ۹۰ درجه محصول روی شیت</span><small>اگر جهت الیاف، طرح، قالب یا خط برش اجازه چرخش نمی‌دهد، این گزینه را خاموش کنید.</small></label>
-<div class="full"><button class="button secondary" type="button" id="calculate-layout">محاسبه تعداد در هر شیت</button><p id="layout-result" class="muted" aria-live="polite">ابعاد محصول و شیت را وارد کنید تا چیدمان تخمین زده شود.</p></div>
+<div class="full"><button class="button secondary" type="button" id="calculate-layout">محاسبه بهترین چیدمان و نمایش نقشه</button><p id="layout-result" class="muted" aria-live="polite">ابعاد محصول و شیت را وارد کنید تا چیدمان تخمین زده شود.</p><section id="layout-preview" class="layout-preview" hidden aria-live="polite"><h3>نقشه چیدمان روی شیت</h3><div id="layout-svg-wrap" class="layout-svg-wrap"></div><p id="layout-legend" class="muted"></p></section></div>
 <label>عمق/عطف (cm) <small>برای محصولاتی که عطف ندارند خالی بگذارید.</small><input name="depth_cm" type="number" min="0" step=".01" value="{{ quote.depth_cm|default_if_none:'' }}"></label>
 <label>ماده اولیه اصلی<select name="material"><option value="">بدون اتصال به قیمت پایه</option>{% for m in materials %}<option value="{{ m.id }}" {% if quote.material_id == m.id %}selected{% endif %}>{{ m.name }} · {{ m.unit_price }} تومان / {{ m.unit }}</option>{% endfor %}</select></label>
 <label>مصرف ماده اصلی برای هر محصول (گرم)<input name="material_grams_per_unit" type="number" min="0" step=".001" value="{{ quote.material_grams_per_unit|default:40 }}"></label>
@@ -66,8 +73,12 @@
     const margin = number("sheet-margin") || 0, gap = number("sheet-gap") || 0;
     const allowRotation = document.getElementById("allow-rotation").checked;
     const result = document.getElementById("layout-result");
-    if (![sw, sh, pw, ph].every(Number.isFinite) || Math.min(sw, sh, pw, ph) <= 0) {
-      result.textContent = "لطفاً ابعاد مثبت محصول و شیت را وارد کنید.";
+    const preview = document.getElementById("layout-preview");
+    const svgWrap = document.getElementById("layout-svg-wrap");
+    const legend = document.getElementById("layout-legend");
+    preview.hidden = true;
+    if (![sw, sh, pw, ph, margin, gap].every(Number.isFinite) || Math.min(sw, sh, pw, ph) <= 0 || margin < 0 || gap < 0) {
+      result.textContent = "لطفاً ابعاد مثبت محصول و شیت و حاشیه/فاصله معتبر وارد کنید.";
       return;
     }
     const usableW = sw - 2 * margin, usableH = sh - 2 * margin;
@@ -75,42 +86,72 @@
       result.textContent = "حاشیه امن از ابعاد شیت بزرگ‌تر است.";
       return;
     }
-    const rowsW = Math.floor((usableW + gap + 1e-9) / (pw + gap));
-    const rowsH = Math.floor((usableH + gap + 1e-9) / (ph + gap));
-    let best = rowsW * rowsH, description = "چیدمان بدون چرخش";
-    if (allowRotation) {
-      const rotatedCols = Math.floor((usableW + gap + 1e-9) / (ph + gap));
-      const rotatedRows = Math.floor((usableH + gap + 1e-9) / (pw + gap));
-      if (rotatedCols * rotatedRows > best) {
-        best = rotatedCols * rotatedRows;
-        description = "چیدمان با چرخش ۹۰ درجه";
-      }
-      // Compare mixed rows: each row uses one orientation, with a shared row height.
-      const directPerRow = rowsW;
-      const rotatedPerRow = rotatedCols;
-      for (let directRows = 0; directRows <= Math.floor((usableH + gap) / (ph + gap)); directRows++) {
-        for (let rotatedRowCount = 0; rotatedRowCount <= Math.floor((usableH + gap) / (pw + gap)); rotatedRowCount++) {
-          const usedH = directRows * ph + rotatedRowCount * pw + Math.max(0, directRows + rotatedRowCount - 1) * gap;
-          if (usedH <= usableH + 1e-9) {
-            const count = directRows * directPerRow + rotatedRowCount * rotatedPerRow;
-            if (count > best) { best = count; description = "چیدمان ترکیبی با و بدون چرخش"; }
-          }
-        }
+    const colsFor = function (w) { return Math.floor((usableW + gap + 1e-9) / (w + gap)); };
+    const rowsFor = function (h) { return Math.floor((usableH + gap + 1e-9) / (h + gap)); };
+    const directCols = colsFor(pw), directRowsMax = rowsFor(ph);
+    const rotatedCols = allowRotation ? colsFor(ph) : 0;
+    const rotatedRowsMax = allowRotation ? rowsFor(pw) : 0;
+    let best = null;
+    // Search combinations of full-width rows. Each row has one orientation.
+    for (let directRows = 0; directRows <= directRowsMax; directRows++) {
+      for (let rotatedRows = 0; rotatedRows <= rotatedRowsMax; rotatedRows++) {
+        if (!allowRotation && rotatedRows > 0) continue;
+        const rowCount = directRows + rotatedRows;
+        if (!rowCount) continue;
+        const usedH = directRows * ph + rotatedRows * pw + Math.max(0, rowCount - 1) * gap;
+        if (usedH > usableH + 1e-9) continue;
+        const count = directRows * directCols + rotatedRows * rotatedCols;
+        if (!best || count > best.count) best = {directRows, rotatedRows, count, usedH};
       }
     }
-    if (best < 1) {
+    if (!best || best.count < 1) {
       result.textContent = "با این ابعاد، محصول در محدوده قابل استفاده شیت جا نمی‌شود.";
       return;
     }
-    document.getElementById("products-per-sheet").value = best;
+    const placements = [];
+    let y = margin;
+    const rowSpecs = [];
+    for (let i = 0; i < best.directRows; i++) rowSpecs.push({w: pw, h: ph, cols: directCols, rotated: false});
+    for (let i = 0; i < best.rotatedRows; i++) rowSpecs.push({w: ph, h: pw, cols: rotatedCols, rotated: true});
+    rowSpecs.forEach(function (row, rowIndex) {
+      for (let col = 0; col < row.cols; col++) {
+        const x = margin + col * (row.w + gap);
+        if (x + row.w <= sw - margin + 1e-9 && y + row.h <= sh - margin + 1e-9) {
+          placements.push({x, y, w: row.w, h: row.h, rotated: row.rotated, index: placements.length + 1});
+        }
+      }
+      y += row.h + gap;
+    });
+    document.getElementById("products-per-sheet").value = best.count;
     const quantityInput = document.querySelector('input[name="quantity"]');
     const sheetsInput = document.querySelector('input[name="sheet_quantity"]');
     if (quantityInput && sheetsInput && parseInt(quantityInput.value, 10) > 0) {
-      sheetsInput.value = Math.ceil(parseInt(quantityInput.value, 10) / best);
+      sheetsInput.value = Math.ceil(parseInt(quantityInput.value, 10) / best.count);
     }
-    result.textContent = "حداکثر تخمینی: " + best + " محصول در هر شیت، " + description +
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + sw + " " + sh);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "نقشه چیدمان " + placements.length + " محصول روی شیت");
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    const make = function (tag, attrs) {
+      const el = document.createElementNS(svgNS, tag);
+      Object.keys(attrs).forEach(function (key) { el.setAttribute(key, attrs[key]); });
+      return el;
+    };
+    svg.appendChild(make("rect", {x: 0, y: 0, width: sw, height: sh, fill: "#fff", stroke: "#334155", "stroke-width": Math.max(sw, sh) * 0.003}));
+    svg.appendChild(make("rect", {x: margin, y: margin, width: usableW, height: usableH, fill: "#f8fafc", stroke: "#94a3b8", "stroke-dasharray": (Math.max(sw, sh) * 0.012) + " " + (Math.max(sw, sh) * 0.008), "stroke-width": Math.max(sw, sh) * 0.0015}));
+    placements.forEach(function (p) {
+      svg.appendChild(make("rect", {x: p.x, y: p.y, width: p.w, height: p.h, rx: Math.max(sw, sh) * 0.002, fill: p.rotated ? "#dcfce7" : "#dbeafe", stroke: p.rotated ? "#15803d" : "#2563eb", "stroke-width": Math.max(sw, sh) * 0.0018}));
+    });
+    svgWrap.replaceChildren(svg);
+    const rotatedCount = placements.filter(function (p) { return p.rotated; }).length;
+    legend.textContent = "آبی: جهت اصلی (" + (placements.length - rotatedCount) + ") · سبز: چرخش ۹۰ درجه (" + rotatedCount + ") · خط‌چین: محدوده قابل استفاده با حاشیه امن. فاصله بین محصولات در مقیاس واقعی رسم شده است.";
+    preview.hidden = false;
+    const layoutName = best.rotatedRows && best.directRows ? "چیدمان ترکیبی" : (best.rotatedRows ? "چیدمان با چرخش ۹۰ درجه" : "چیدمان بدون چرخش");
+    result.textContent = "حداکثر تخمینی: " + best.count + " محصول در هر شیت، " + layoutName +
       (sheetsInput && sheetsInput.value ? "؛ شیت موردنیاز برای تیراژ فعلی: " + sheetsInput.value : "") +
-      ". نتیجه برای چیدمان ردیفی است و جایگزین بررسی نهایی قالب و خط برش نیست.";
+      ". این الگوریتم ردیف‌های هم‌جهت را بررسی می‌کند؛ برای تأیید قالب و خط برش، نقشه نهایی تولید را بررسی کنید.";
   });
   const materialButton = document.getElementById("add-material-line");
   if (materialButton) materialButton.addEventListener("click", function () {
